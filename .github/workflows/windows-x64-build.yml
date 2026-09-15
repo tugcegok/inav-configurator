@@ -1,0 +1,47 @@
+name: Windows x64 Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup WiX Toolset 3.14
+        uses: engineerd/configurator@v0.0.10
+        with:
+          name: WiX Toolset
+          url: https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip
+          pathInArchive: /
+
+      - name: Install dependencies
+        run: yarn install --foreground-scripts
+
+      - name: Build Windows x64
+        run: yarn run make -- --arch="x64"
+
+      - name: Upload Windows x64 ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: INAV-Configurator-Windows-x64-ZIP
+          path: out/make/zip/win32/x64/*.zip
+          if-no-files-found: error
+
+      - name: Upload Windows x64 MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: INAV-Configurator-Windows-x64-MSI
+          path: out/make/wix/x64/*.msi
+          if-no-files-found: error
