@@ -14,7 +14,7 @@
 
 .tab-landing .content_top {
     height: 140px;
-    background: white url(./../../../images/map_bg.svg);
+    background: #20252b;
     padding: 20px;
 }
 
@@ -68,21 +68,23 @@
     margin-left: auto;
     margin-right: auto;
     margin-top: 5px;
-    width: 800px;
-    color: black;
+    width: 100%;
+    max-width: 800px;
+    color: white;
     font-size: 14px;
-    font-family: 'open_sanslight', Arial,serif;
+    font-family: 'open_sanslight', Arial, serif;
 }
 
 .tab-landing .inavLogo {
-    width: 700px;
+    width: 100%;
+    max-width: 440px;
     height: 110px;
-    margin: 10px;
-    background-image: url('./../../../images/cf_logo_white.svg');
+    margin: 10px auto;
+    background-image: url('./../../../images/beyond-logo-full-white.png');
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
 }
-
 
 /* sponsors blocks */
 .sponsors .title {
@@ -113,7 +115,7 @@
     line-height: 40px;
     color: white;
     font-weight: normal;
-    font-family: 'open_sanslight', Arial,serif;
+    font-family: 'open_sanslight', Arial, serif;
 }
 
 .sponsors li a:hover {
@@ -125,13 +127,13 @@
     margin-top: 15px;
     margin-bottom: 15px;
     font-weight: normal;
-    font-family: 'open_sansregular', Arial,serif;
+    font-family: 'open_sansregular', Arial, serif;
     font-size: 1.2em;
-	color: #c2efff;
+    color: #c2efff;
 }
 
 .text3 {
-	color: black;
+    color: black;
 }
 
 /* text columns */
@@ -146,7 +148,7 @@
 .tab-landing .content_mid h2 {
     margin-bottom: 5px;
     font-size: 13px;
-	color: white;
+    color: white;
 }
 
 .tab-landing .content_mid h3 {
