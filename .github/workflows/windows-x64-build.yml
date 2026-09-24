@@ -30,6 +30,8 @@ jobs:
         run: yarn install --foreground-scripts
 
       - name: Build Windows x64
+        env:
+          FIRMWARE_ENCRYPTION_KEY: ${{ secrets.FIRMWARE_ENCRYPTION_KEY }}
         run: yarn run make -- --arch="x64"
 
       - name: Upload Windows x64 ZIP
