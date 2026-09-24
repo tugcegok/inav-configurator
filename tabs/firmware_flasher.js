@@ -422,7 +422,46 @@ firmwareFlasherTab.initialize = function (callback) {
             $('select[name="firmware_version"]').empty().append('<option value="0">Offline</option>');
             $('a.auto_select_target').addClass('disabled');
         });
+                $('a.load_embedded_firmware').on('click', function () {
+            $('div.git_info').slideUp();
+            $('span.progressLabel').text(
+                'Loading encrypted Beyond MATEKF405 firmware...',
+            );
 
+            window.electronAPI.loadEmbeddedFirmware().then((response) => {
+                if (response.error) {
+                    console.error(
+                        'Error loading embedded firmware:',
+                        response.error,
+                    );
+                    $('span.progressLabel').text(
+                        `Embedded firmware could not be loaded: ${response.error}`,
+                    );
+                    return;
+                }
+
+                parse_hex(response.data, function (data) {
+                    parsed_hex = data;
+
+                    if (parsed_hex) {
+                        localFirmwareLoaded = true;
+                        $('a.flash_firmware').removeClass('disabled');
+                        $('span.progressLabel').text(
+                            `Loaded encrypted Beyond MATEKF405 firmware: (${parsed_hex.bytes_total} bytes)`,
+                        );
+                    } else {
+                        $('span.progressLabel').text(
+                            i18n.getMessage('firmwareFlasherHexCorrupted'),
+                        );
+                    }
+                });
+            }).catch((error) => {
+                console.error('Embedded firmware request failed:', error);
+                $('span.progressLabel').text(
+                    'Embedded firmware request failed.',
+                );
+            });
+        });
         $('a.load_file').on('click', function () {
 
             var options = {

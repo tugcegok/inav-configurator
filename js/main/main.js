@@ -11,6 +11,7 @@ import tcp from './tcp';
 import udp from './udp';
 import serial from './serial';
 import child_process from './child_process';
+import { decryptFirmwarePackage } from './firmware-crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,6 +26,19 @@ function getSitlBasePath() {
   } else {
     return path.join(app.getAppPath(), 'resources', 'public', 'sitl');
   }
+}
+
+function getEmbeddedFirmwarePath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'firmware', 'matekf405.btfw');
+  }
+
+  return path.join(
+    app.getAppPath(),
+    'resources',
+    'firmware',
+    'matekf405.btfw',
+  );
 }
 
 const usbBootloaderIds =  [
@@ -399,6 +413,23 @@ app.whenReady().then(() => {
         resolve({error: err});
       }
     });
+  });
+
+  ipcMain.handle('loadEmbeddedFirmware', async () => {
+    try {
+      const keyHex = process.env.FIRMWARE_ENCRYPTION_KEY;
+      const encryptedPackage = await readFile(getEmbeddedFirmwarePath());
+      const plaintext = decryptFirmwarePackage(encryptedPackage, keyHex);
+
+      return {
+        error: false,
+        data: plaintext.toString('utf8'),
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   ipcMain.handle('chmod', (_event, pathName, mode) => {

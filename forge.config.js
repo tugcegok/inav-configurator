@@ -7,10 +7,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default {
   packagerConfig: {
     executableName: "inav-configurator",
-    asar: false,
+    asar: true,
     icon: 'images/inav',
     extraResource: [
       'resources/public/sitl',
+      'resources/firmware',
       'assets/linux/45-inav.rules'
     ],
   },

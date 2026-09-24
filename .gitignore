@@ -22,3 +22,10 @@ eeprom.bin
 tags
 TAGS
 start-with-debugging.sh
+
+# Embedded firmware source and local encryption secrets
+*.hex
+*.key
+.env
+.env.*
+!.env.example
