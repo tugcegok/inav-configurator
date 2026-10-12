@@ -138,9 +138,9 @@ input[type="number"]::-webkit-inner-spin-button {
     height: 80px;
     z-index: 0;
     width: 450px;
-    background: url("./../../images/beyond-logo-white.png") no-repeat left center;
-    background-size: 240px auto;
-    margin-left: 15px;
+    background: url("./../../images/beyond-logo-full-white.png") no-repeat left center;
+    background-size: 220px auto;
+    margin-left: 5px;
     margin-top: 10px;
 }
 
