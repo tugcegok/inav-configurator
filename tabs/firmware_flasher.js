@@ -422,45 +422,136 @@ firmwareFlasherTab.initialize = function (callback) {
             $('select[name="firmware_version"]').empty().append('<option value="0">Offline</option>');
             $('a.auto_select_target').addClass('disabled');
         });
-                $('a.load_embedded_firmware').on('click', function () {
-            $('div.git_info').slideUp();
-            $('span.progressLabel').text(
-                'Loading encrypted Beyond MATEKF405 firmware...',
-            );
+                       // Yerleşik firmware seçim kutusu ve yükleme düğmesi.
+        const embeddedFirmwareSelect = $(
+            'select.embedded_firmware_select',
+        );
+        const loadEmbeddedFirmwareButton = $(
+            'a.load_embedded_firmware',
+        );
 
-            window.electronAPI.loadEmbeddedFirmware().then((response) => {
-                if (response.error) {
-                    console.error(
-                        'Error loading embedded firmware:',
-                        response.error,
+        // Main process'teki güvenilir firmware kataloğunu alır
+        // ve açılır listeye seçenek olarak ekler.
+        window.electronAPI
+            .getEmbeddedFirmwares()
+            .then((firmwares) => {
+                firmwares.forEach((firmware) => {
+                    embeddedFirmwareSelect.append(
+                        $('<option>', {
+                            value: firmware.id,
+                            text: firmware.label,
+                        }),
                     );
-                    $('span.progressLabel').text(
-                        `Embedded firmware could not be loaded: ${response.error}`,
-                    );
-                    return;
-                }
-
-                parse_hex(response.data, function (data) {
-                    parsed_hex = data;
-
-                    if (parsed_hex) {
-                        localFirmwareLoaded = true;
-                        $('a.flash_firmware').removeClass('disabled');
-                        $('span.progressLabel').text(
-                            `Loaded encrypted Beyond MATEKF405 firmware: (${parsed_hex.bytes_total} bytes)`,
-                        );
-                    } else {
-                        $('span.progressLabel').text(
-                            i18n.getMessage('firmwareFlasherHexCorrupted'),
-                        );
-                    }
                 });
-            }).catch((error) => {
-                console.error('Embedded firmware request failed:', error);
+            })
+            .catch((error) => {
+                console.error(
+                    'Embedded firmware list could not be loaded:',
+                    error,
+                );
                 $('span.progressLabel').text(
-                    'Embedded firmware request failed.',
+                    'Bundled firmware list could not be loaded.',
                 );
             });
+
+        // Kullanıcı farklı bir seçenek seçtiğinde çalışır.
+        embeddedFirmwareSelect.on('change', function () {
+            const firmwareId = $(this).val();
+
+            // Seçim yoksa yükleme düğmesi pasif,
+            // geçerli bir seçim varsa aktif olur.
+            loadEmbeddedFirmwareButton.toggleClass(
+                'disabled',
+                !firmwareId,
+            );
+
+            // Seçim değiştiğinde daha önce yüklenmiş firmware'in
+            // yanlışlıkla flash edilmesini engeller.
+            localFirmwareLoaded = false;
+            parsed_hex = false;
+            $('a.flash_firmware').addClass('disabled');
+
+            if (firmwareId) {
+                const selectedLabel = $(this)
+                    .find('option:selected')
+                    .text();
+
+                $('span.progressLabel').text(
+                    `Selected bundled firmware: ${selectedLabel}`,
+                );
+            }
+        });
+
+        // Kullanıcının seçtiği yerleşik firmware'i yükler.
+        loadEmbeddedFirmwareButton.on('click', function (event) {
+            event.preventDefault();
+
+            // Düğme pasifse veya seçim yapılmamışsa işlem yapmaz.
+            if ($(this).hasClass('disabled')) {
+                return;
+            }
+
+            const firmwareId = embeddedFirmwareSelect.val();
+            const selectedLabel = embeddedFirmwareSelect
+                .find('option:selected')
+                .text();
+
+            $('div.git_info').slideUp();
+            $('a.flash_firmware').addClass('disabled');
+            $('span.progressLabel').text(
+                `Loading encrypted firmware: ${selectedLabel}...`,
+            );
+
+            // Seçilen güvenli firmware kimliğini preload üzerinden
+            // main process'e gönderir.
+            window.electronAPI
+                .loadEmbeddedFirmware(firmwareId)
+                .then((response) => {
+                    if (response.error) {
+                        console.error(
+                            'Error loading embedded firmware:',
+                            response.error,
+                        );
+                        $('span.progressLabel').text(
+                            `Embedded firmware could not be loaded: ${response.error}`,
+                        );
+                        return;
+                    }
+
+                    // RAM'de çözülmüş Intel HEX metnini
+                    // mevcut Firmware Flasher ayrıştırıcısına verir.
+                    parse_hex(response.data, function (data) {
+                        parsed_hex = data;
+
+                        if (parsed_hex) {
+                            localFirmwareLoaded = true;
+                            $('a.flash_firmware').removeClass(
+                                'disabled',
+                            );
+                            $('span.progressLabel').text(
+                                `Loaded ${response.firmware.label}: ` +
+                                `(${parsed_hex.bytes_total} bytes)`,
+                            );
+                        } else {
+                            localFirmwareLoaded = false;
+                            $('span.progressLabel').text(
+                                i18n.getMessage(
+                                    'firmwareFlasherHexCorrupted',
+                                ),
+                            );
+                        }
+                    });
+                })
+                .catch((error) => {
+                    console.error(
+                        'Embedded firmware request failed:',
+                        error,
+                    );
+                    localFirmwareLoaded = false;
+                    $('span.progressLabel').text(
+                        'Embedded firmware request failed.',
+                    );
+                });
         });
         $('a.load_file').on('click', function () {
 

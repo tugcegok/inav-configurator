@@ -66,6 +66,20 @@
         <div class="options gui_box">
             <div class="spacer">
                 <table class="cf_table" style="margin-top: 10px;">
+                    <tr class="embedded_firmware_row">
+    <td>
+        <select class="embedded_firmware_select">
+            <option value="">Select Bundled Firmware</option>
+        </select>
+    </td>
+    <td>
+        <div class="default_btn narrow">
+            <a class="load_embedded_firmware disabled" href="#">
+                Load Selected Firmware
+            </a>
+        </div>
+    </td>
+</tr>
                     <tr>
                         <td><input class="target_search" placeholder="Search targets..." autocomplete="on"><br />
                             <select name="board" id="board_targets">
@@ -194,10 +208,6 @@
           </div>
         </div>
 
-        <div>
-          <div class="btn">
-              <a class="load_embedded_firmware" href="#">Load Beyond MATEKF405 Firmware</a>
-          </div>
           <div class="btn">
               <a class="load_file" href="#" i18n="firmwareFlasherButtonLoadLocal"></a>
           </div>

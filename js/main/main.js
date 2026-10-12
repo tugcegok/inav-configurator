@@ -27,17 +27,43 @@ function getSitlBasePath() {
     return path.join(app.getAppPath(), 'resources', 'public', 'sitl');
   }
 }
+// Configurator içinde seçilebilecek yerleşik firmware paketleri.
+const embeddedFirmwares = Object.freeze({
+  'inav-8.0.0-matekf405': {
+    label: 'INAV 8.0.0 – MATEKF405',
+    fileName: 'inav-8.0.0-matekf405.btfw',
+    metadata: {
+      family: 'INAV',
+      version: '8.0.0',
+      target: 'MATEKF405',
+    },
+  },
 
-function getEmbeddedFirmwarePath() {
+  'betaflight-4.4.3-mtks-matekf405std': {
+    label: 'Betaflight 4.4.3 – MTKS-MATEKF405STD',
+    fileName: 'betaflight-4.4.3-mtks-matekf405std.btfw',
+    metadata: {
+      family: 'BETAFLIGHT',
+      version: '4.4.3',
+      target: 'MTKS-MATEKF405STD',
+    },
+  },
+});
+
+// Seçilen firmware dosyasının tam disk yolunu oluşturur.
+function getEmbeddedFirmwarePath(fileName) {
+  // Paketlenmiş uygulamada dosya Resources/firmware içindedir.
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'firmware', 'matekf405.btfw');
+    return path.join(process.resourcesPath, 'firmware', fileName);
   }
 
+  // Geliştirme ortamında dosya proje içindeki
+  // resources/firmware klasöründedir.
   return path.join(
     app.getAppPath(),
     'resources',
     'firmware',
-    'matekf405.btfw',
+    fileName,
   );
 }
 
@@ -414,23 +440,76 @@ app.whenReady().then(() => {
       }
     });
   });
-
-  ipcMain.handle('loadEmbeddedFirmware', async () => {
-    try {
-      const keyHex = process.env.FIRMWARE_ENCRYPTION_KEY;
-      const encryptedPackage = await readFile(getEmbeddedFirmwarePath());
-      const plaintext = decryptFirmwarePackage(encryptedPackage, keyHex);
-
-      return {
-        error: false,
-        data: plaintext.toString('utf8'),
-      };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+  // Renderer'a kullanıcının seçebileceği yerleşik
+  // firmware seçeneklerini gönderir.
+  ipcMain.handle('getEmbeddedFirmwares', () => {
+    return Object.entries(embeddedFirmwares).map(
+      ([id, firmware]) => ({
+        id,
+        label: firmware.label,
+        family: firmware.metadata.family,
+        version: firmware.metadata.version,
+        target: firmware.metadata.target,
+      }),
+    );
   });
+
+  // Renderer'ın gönderdiği firmware kimliğine göre
+  // doğru şifreli paketi okur ve RAM içerisinde çözer.
+  ipcMain.handle(
+    'loadEmbeddedFirmware',
+    async (_event, firmwareId) => {
+      try {
+        // Gönderilen kimliğin izin verilen katalogda
+        // gerçekten bulunduğunu kontrol eder.
+        if (
+          typeof firmwareId !== 'string' ||
+          !Object.hasOwn(embeddedFirmwares, firmwareId)
+        ) {
+          throw new Error('Unknown embedded firmware selection.');
+        }
+
+        // Seçilen firmware'in güvenilir katalog kaydını alır.
+        const firmware = embeddedFirmwares[firmwareId];
+
+        // Gizli AES anahtarını ortam değişkeninden alır.
+        const keyHex = process.env.FIRMWARE_ENCRYPTION_KEY;
+
+        // Seçilen BTFW paketini diskten Buffer olarak okur.
+        const encryptedPackage = await readFile(
+          getEmbeddedFirmwarePath(firmware.fileName),
+        );
+
+        // Paketi çözerken katalogdaki metadata'nın
+        // paket içindeki metadata ile aynı olmasını zorunlu tutar.
+        const plaintext = decryptFirmwarePackage(
+          encryptedPackage,
+          keyHex,
+          firmware.metadata,
+        );
+
+        // Doğrulanmış Intel HEX içeriğini renderer'a gönderir.
+        return {
+          error: false,
+          data: plaintext.toString('utf8'),
+          firmware: {
+            id: firmwareId,
+            label: firmware.label,
+            ...firmware.metadata,
+          },
+        };
+      } catch (error) {
+        // Dosya, anahtar, metadata veya şifre çözme hatasını
+        // kontrollü bir cevap olarak renderer'a gönderir.
+        return {
+          error:
+            error instanceof Error
+              ? error.message
+              : String(error),
+        };
+      }
+    },
+  );
 
   ipcMain.handle('chmod', (_event, pathName, mode) => {
     return new Promise(resolve => {
